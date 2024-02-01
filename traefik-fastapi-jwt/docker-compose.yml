@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  traefik:
+    image: traefik:v2.3
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./traefik.yml:/etc/traefik/traefik.yml"
+    networks:
+      - web
+    
+  opa:
+    build: ./opa
+    ports:
+      - "8181:8181"
+
+  middleware:
+    build: ./traefik-middlewares
+    networks:
+      - web
+
+  api-1:
+    build: ./api-1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-1.rule=PathPrefix(`/api/v1/api-1`)"
+      - "traefik.http.routers.api-1.middlewares=auth-middleware@docker, api-1-stripprefix@docker"
+      - "traefik.http.middlewares.api-1-stripprefix.stripprefix.prefixes=/api/v1"
+    networks:
+      - web
+
+  api-2:
+    build: ./api-2
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-2.rule=PathPrefix(`/api/v1/api-2`)"
+      - "traefik.http.routers.api-2.middlewares=auth-middleware@docker, api-2-stripprefix@docker"
+      - "traefik.http.middlewares.api-2-stripprefix.stripprefix.prefixes=/api/v1"
+    networks:
+      - web
+
+networks:
+  web:
+    external: false

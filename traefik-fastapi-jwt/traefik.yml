@@ -1,0 +1,22 @@
+api:
+  dashboard: true
+
+log:
+  level: DEBUG
+
+providers:
+  docker:
+    exposedByDefault: false
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+http:
+  middlewares:
+    auth-middleware:
+      forwardAuth:
+        address: "http://middleware:80"  # URL of your middleware service
+        trustForwardHeader: true
